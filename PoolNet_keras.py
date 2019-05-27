@@ -55,65 +55,6 @@ def feature_aggregation_module(x):
     return conv_block(all, x._keras_shape[-1], (3, 3))
 
 
-
-
-
-
-    channel_axis = 1 if K.image_data_format() == "channels_first" else -1
-    base_model1 = VGG16(include_top=False,
-                        weights=weights,
-                        input_tensor=None,
-                        input_shape=input_shape,
-                        pooling=None,
-                        classes=classes)
-    # base_model1.load_weights('vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5')
-    for layer in base_model1.layers:
-        layer.trainable = True
-
-    m1_down2 = base_model1.get_layer('block2_conv2').output  # 2
-    m1_down4 = base_model1.get_layer('block3_conv3').output  # 4
-    m1_down8 = base_model1.get_layer('block4_conv3').output  # 8
-    m1_down16 = base_model1.get_layer('block5_conv3').output  # 16
-
-    # CE-block
-
-    center = ce_block(m1_down16)
-    center = conv_block(center, 512, (3, 3))
-    center = PyramidPoolingModule()(center)
-    mm_down8 = concatenate([decoder_block(center, 512), m1_down8], axis=channel_axis)  # 8
-    mm_down8 = conv_block(mm_down8, 256, (3, 3))
-    mm_down8 = conv_block(mm_down8, 256, (3, 3))
-
-    # mm_down16_att = attach_attention_module(mm_down16, attention_module)
-
-    mm_down4 = concatenate([m1_down4, decoder_block(mm_down8, 256)], axis=channel_axis)  # 4
-    mm_down4 = conv_block(mm_down4, 128, (3, 3))
-    mm_down4 = conv_block(mm_down4, 128, (3, 3))
-    # mm_down16_up = UpSampling2D(size=(2, 2))(mm_down16_att)
-    # mm_down8_combine = concatenate([mm_down8, mm_down16_up], axis=channel_axis)
-    # mm_down8_att = attach_attention_module(mm_down8_combine, attention_module)
-
-    mm_down2 = concatenate([m1_down2, decoder_block(mm_down4, 128)], axis=channel_axis)  # 2
-    mm_down2 = conv_block(mm_down2, 64, (3, 3))
-    mm_down2 = conv_block(mm_down2, 64, (3, 3))
-    # mm_down8_up = UpSampling2D(size=(2, 2))(mm_down8_att)
-    # mm_down4_combine = concatenate([mm_down4, mm_down8_up], axis=channel_axis)
-    # mm_down4_att = attach_attention_module(mm_down4_combine, attention_module)
-
-    # mm_down = concatenate([m1_down2, UpSampling2D()(mm_down2)], axis=channel_axis)
-    # mm_down = conv_block(mm_down, 64, (3, 3))
-    # mm_down = conv_block(mm_down, 64, (3, 3))
-    mm_down = decoder_block(mm_down2, 64)
-    mm_down = conv_block(mm_down, 32, (3, 3))
-    mm_down = conv_block(mm_down, 32, (3, 3))
-    # mm_down2_combine = concatenate([mm_down2, mm_down4_up], axis=channel_axis)
-    # mm_down2_att = attach_attention_module(mm_down2_combine, attention_module)
-
-    # mm_last = UpSampling2D(size=(2, 2))(mm_down2_att)
-
-    promap = Conv2D(classes, (1, 1), activation='sigmoid')(mm_down)
-    model = Model(inputs=[base_model1.input], outputs=[promap])
-    return m
 def VGG16_POOLNet(input_shape, weights=None, classes=1):
    
     base_model1 = VGG16(include_top=False,
